@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class AddProductPage extends StatefulWidget {
+
   final int? productId; // Pode ser nulo para adição, não nulo para edição
 
   AddProductPage({Key? key, this.productId}) : super(key: key);
@@ -33,37 +34,33 @@ class _AddProductPageState extends State<AddProductPage> {
     super.initState();
     if (widget.productId != null) {
       _isEdit = true;
-      _fetchProductData(widget.productId!);
+      _fetchProductData(widget.productId!); // Carregar dados para edição
     }
   }
 
   Future<void> _fetchProductData(int productId) async {
-    final response = await http.get(
-        Uri.parse('https://api-rest.maxima.inf.br/api/products/$productId'));
+    final response = await http.get(Uri.parse('https://api-rest.maxima.inf.br/api/products/$productId'));
     if (response.statusCode == 200) {
       var productData = json.decode(response.body);
-      print("Product Data: $productData"); // Imprimir os dados do produto
-
-      _nameController.text = productData['name'] ?? '';
-      _quantityController.text = productData['quanty']?.toString() ?? '';
-      _descriptionController.text = productData['description'] ?? '';
-      _valueController.text = productData['value']?.toString() ?? '';
+      _nameController.text = productData['name'];
+      _quantityController.text = productData['quanty'];
+      _descriptionController.text = productData['description'];
+      _valueController.text = productData['value'];
       setState(() {
-        _selectedCategory = productData['category'] ?? _selectedCategory;
+        _selectedCategory = productData['category'];
       });
     } else {
       print('Failed to load product data: ${response.body}');
     }
   }
 
+
   Future<void> _submitProduct() async {
     if (_formKey.currentState!.validate()) {
-      var url = _isEdit
-          ? 'https://api-rest.maxima.inf.br/api/products/${widget.productId}'
-          : 'https://api-rest.maxima.inf.br/api/products';
-
-      var response = await (_isEdit ? http.put : http.post)(
-        Uri.parse(url),
+      var url = 'https://api-rest.maxima.inf.br/api/products';
+      var method = _isEdit ? http.put : http.post;
+      var response = await http.post(
+        Uri.parse('https://api-rest.maxima.inf.br/api/products'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'name': _nameController.text,
@@ -74,20 +71,16 @@ class _AddProductPageState extends State<AddProductPage> {
         }),
       );
 
-      if (_isEdit ? response.statusCode == 200 : response.statusCode == 201) {
+      if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(_isEdit
-                  ? 'Product updated successfully'
-                  : 'Product added successfully')),
-        );
-        Navigator.pop(context);
+            SnackBar(content: Text('Product added successfully')));
+        Navigator.pop(context); // Go back to previous screen
       } else {
         print("----------------------------------------------");
-        print('Failed to add/edit product: ${response.body}');
+        print('Failed to add product: ${response.body}');
         print("----------------------------------------------");
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: ${response.body}')));
+            .showSnackBar(SnackBar(content: Text('Failed to add product')));
       }
     }
   }
